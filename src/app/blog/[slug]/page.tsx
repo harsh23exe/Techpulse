@@ -11,13 +11,14 @@ import BackToTop from '@/components/BackToTop';
 import NewsletterForm from '@/components/NewsletterForm';
 
 interface Props {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 }
 
-export function generateMetadata({ params }: Props): Metadata {
-  const post = posts.find((post) => post.slug === params.slug);
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const post = posts.find((post) => post.slug === slug);
   
   if (!post) {
     return {
@@ -51,8 +52,9 @@ export async function generateStaticParams() {
   }));
 }
 
-export default function BlogPost({ params }: Props) {
-  const post = posts.find((post) => post.slug === params.slug);
+export default async function BlogPost({ params }: Props) {
+  const { slug } = await params;
+  const post = posts.find((post) => post.slug === slug);
 
   if (!post) {
     notFound();

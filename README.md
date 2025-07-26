@@ -1,8 +1,43 @@
-TechPulse AI is a modern tech news and blog platform focused on delivering curated and AI-assisted technology articles.
+# TechPulse AI - Frontend
+
+A modern Next.js frontend for the TechPulse AI platform, integrated with the Real-Time-News-Agent backend service.
+
+## Features
+
+- **Real-Time News Search**: Search the latest tech news with AI-powered summaries
+- **AI Chat Interface**: Interactive chat with AI assistant for news queries
+- **Blog System**: Display curated tech articles and insights
+- **Responsive Design**: Mobile-first design with Tailwind CSS
+- **Backend Integration**: Seamless integration with FastAPI backend
+
+## Environment Configuration
+
+Create a `.env.local` file in the project root:
+
+```env
+# Backend API Configuration
+NEXT_PUBLIC_BACKEND_URL=http://localhost:8000
+NEXT_PUBLIC_WS_URL=ws://localhost:8000
+
+# JWT Token for API authentication (set this when you have a token)
+NEXT_PUBLIC_JWT_TOKEN=your_jwt_token_here
+```
+
+## Backend Integration
+
+This frontend integrates with your Real-Time-News-Agent backend that provides:
+
+- `POST /api/v1/news/search` - News search with AI summaries
+- `ws://<host>/ws/chat` - Real-time chat interface
+- JWT authentication for secure access
 
 ## Getting Started
 
-First, run the development server:
+Make sure your Real-Time-News-Agent backend is running, then start the development server:
+
+```bash
+npm install
+npm run dev
 
 ```bash
 npm run dev
