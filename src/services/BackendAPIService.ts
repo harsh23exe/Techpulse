@@ -1,5 +1,6 @@
 // Backend API service for Real-Time-News-Agent integration
 export interface NewsArticle {
+  id: string;
   title: string;
   url: string;
   summary: string;
@@ -28,6 +29,38 @@ export interface ChatMessage {
   selected_news_article?: NewsArticle | null;
 }
 
+export interface ArticleMetadata {
+  author?: string;
+  content_type?: string;
+  description?: string;
+  image_url?: string;
+  processed_at?: string;
+  published_at?: string;
+  source_name?: string;
+  source_type?: string;
+  text?: string;
+  text_length?: number;
+  title?: string;
+  url?: string;
+  [key: string]: string | number | boolean | null | undefined;
+}
+
+export interface ArticleRecord {
+  id: string;
+  metadata: ArticleMetadata;
+}
+
+export interface FetchArticleResponse {
+  success: boolean;
+  records: Record<string, ArticleRecord>;
+  namespace: string;
+  usage: {
+    read_units: number;
+  };
+  total_fetched: number;
+  error: string | null;
+}
+
 class BackendAPIService {
   private baseUrl: string;
   private wsUrl: string;
@@ -38,6 +71,11 @@ class BackendAPIService {
     this.baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '/api/backend';
     this.wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000';
     this.jwtToken = process.env.NEXT_PUBLIC_JWT_TOKEN || null;
+    
+    // Validate JWT token
+    if (this.jwtToken === 'null' || this.jwtToken === 'undefined' || this.jwtToken === '') {
+      this.jwtToken = null;
+    }
   }
 
   private getAuthHeaders(): HeadersInit {
@@ -52,6 +90,24 @@ class BackendAPIService {
     return headers;
   }
 
+  private async handleResponse(response: Response) {
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API Error: ${response.status} - ${errorText}`);
+    }
+    return await response.json();
+  }
+
+  private handleNetworkError(error: unknown): never {
+    console.error('API request failed:', error);
+    
+    if (error instanceof TypeError && error.message.includes('Load failed')) {
+      throw new Error('Backend server is not available. Please ensure your backend is running on port 8000.');
+    }
+    
+    throw error;
+  }
+
   async searchNews(query: string, limit: number = 10): Promise<NewsSearchResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/api/v1/news/search`, {
@@ -60,21 +116,9 @@ class BackendAPIService {
         body: JSON.stringify({ query, limit }),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API Error: ${response.status} - ${errorText}`);
-      }
-
-      return await response.json();
+      return await this.handleResponse(response);
     } catch (error) {
-      console.error('Error searching news:', error);
-      
-      // Check if it's a network error (backend not available)
-      if (error instanceof TypeError && error.message.includes('Load failed')) {
-        throw new Error('Backend server is not available. Please ensure your backend is running on port 8000.');
-      }
-      
-      throw error;
+      return this.handleNetworkError(error);
     }
   }
 
@@ -93,27 +137,15 @@ class BackendAPIService {
         headers: this.getAuthHeaders(),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API Error: ${response.status} - ${errorText}`);
-      }
-
-      return await response.json();
+      return await this.handleResponse(response);
     } catch (error) {
-      console.error('Error fetching headlines:', error);
-      
-      // Check if it's a network error (backend not available)
-      if (error instanceof TypeError && error.message.includes('Load failed')) {
-        throw new Error('Backend server is not available. Please ensure your backend is running on port 8000.');
-      }
-      
-      throw error;
+      return this.handleNetworkError(error);
     }
   }
 
   createChatWebSocket(): WebSocket | null {
     try {
-      const wsUrl = this.jwtToken 
+      const wsUrl = this.jwtToken && this.jwtToken !== 'null'
         ? `${this.wsUrl}/ws/chat?token=${this.jwtToken}`
         : `${this.wsUrl}/ws/chat`;
       
@@ -121,6 +153,75 @@ class BackendAPIService {
     } catch (error) {
       console.error('Error creating WebSocket:', error);
       return null;
+    }
+  }
+
+  async fetchArticle(id: string): Promise<NewsArticle> {
+    return this.fetchArticles([id]).then(response => {
+      // Check if response indicates failure
+      if (response.success === false) {
+        throw new Error(response.error || 'API request failed');
+      }
+      
+      // Check if records exist
+      if (!response.records || typeof response.records !== 'object') {
+        throw new Error('Invalid response format: missing records');
+      }
+      
+      // Try exact ID match first
+      let record = response.records[id];
+      
+      // If exact match fails, try to find by partial match or alternative formats
+      if (!record) {
+        const recordKeys = Object.keys(response.records);
+        
+        // Try to find a record that contains the ID
+        const matchingKey = recordKeys.find(key => 
+          key.includes(id) || id.includes(key) || key.toLowerCase() === id.toLowerCase()
+        );
+        
+        if (matchingKey) {
+          record = response.records[matchingKey];
+        }
+      }
+      
+      if (!record) {
+        const availableIds = Object.keys(response.records);
+        const errorMessage = availableIds.length > 0 
+          ? `Article not found. Available IDs: ${availableIds.join(', ')}`
+          : 'Article not found. No articles returned from API.';
+        
+        throw new Error(errorMessage);
+      }
+      
+      // Validate record structure
+      if (!record.metadata) {
+        throw new Error('Invalid article format: missing metadata');
+      }
+      
+      return {
+        id: record.id,
+        title: String(record.metadata.title || 'Untitled'),
+        url: String(record.metadata.url || ''),
+        summary: String(record.metadata.description || record.metadata.text || 'No summary available'),
+        published_at: String(record.metadata.published_at || new Date().toISOString()),
+      };
+    });
+  }
+
+  async fetchArticles(ids: string[]): Promise<FetchArticleResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/news/fetch`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ ids }),
+      });
+
+      const data = await this.handleResponse(response);
+      return data;
+    } catch (error) {
+      console.error('fetchArticles error:', error);
+      return this.handleNetworkError(error);
     }
   }
 

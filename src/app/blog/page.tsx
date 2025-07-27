@@ -1,5 +1,5 @@
 import { posts } from "@/data/posts";
-import PostCard from "@/components/PostCard";
+import Card from "@/components/ui/Card";
 
 export default function BlogPage() {
   return (
@@ -16,7 +16,19 @@ export default function BlogPage() {
       <section>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
+            <Card 
+              key={post.id} 
+              data={{
+                type: 'blog',
+                title: post.title,
+                excerpt: post.excerpt,
+                slug: post.slug,
+                author: post.author,
+                date: post.date,
+                readingTime: post.readingTime,
+                coverImage: post.coverImage
+              }} 
+            />
           ))}
         </div>
       </section>
