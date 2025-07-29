@@ -142,6 +142,16 @@ export default function ArticlePage() {
         </Link>
         <Link
           href="/chat"
+          onClick={() => {
+            // Store article context in localStorage
+            localStorage.setItem('chatArticleContext', JSON.stringify({
+              id: article.id,
+              title: article.title,
+              summary: article.summary,
+              url: article.url,
+              published_at: article.published_at
+            }));
+          }}
           className="inline-flex items-center justify-center px-6 py-3 bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-700 transition-colors"
         >
           Ask AI About This Topic

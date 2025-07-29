@@ -26,7 +26,7 @@ export interface ChatMessage {
   type: 'user_message' | 'bot_response' | 'error';
   content?: string;
   message?: string;
-  selected_news_article?: NewsArticle | null;
+  selected_news_article?: NewsArticle | string | null;
 }
 
 export interface ArticleMetadata {
