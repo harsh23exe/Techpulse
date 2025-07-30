@@ -29,6 +29,18 @@ export interface ChatMessage {
   selected_news_article?: NewsArticle | string | null;
 }
 
+export interface ChatRequest {
+  type: 'user_message';
+  content: string;
+  chat_history?: string[];
+  selected_news_article?: string | null;
+}
+
+export interface ChatResponse {
+  type: 'bot_response';
+  content: string;
+}
+
 export interface ArticleMetadata {
   author?: string;
   content_type?: string;
@@ -63,17 +75,11 @@ export interface FetchArticleResponse {
 
 class BackendAPIService {
   private baseUrl: string;
-  private wsUrl: string;
   private jwtToken: string | null;
 
   constructor() {
     // Use the Next.js proxy route instead of direct backend URL
     this.baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '/api/backend';
-    
-    // Set WebSocket URL based on environment
-    const isProduction = process.env.NODE_ENV === 'production';
-    this.wsUrl = process.env.NEXT_PUBLIC_WS_URL || 
-      (isProduction ? 'wss://real-time-news-agent.vercel.app' : 'ws://localhost:8000');
     
     this.jwtToken = process.env.NEXT_PUBLIC_JWT_TOKEN || null;
     
@@ -148,16 +154,29 @@ class BackendAPIService {
     }
   }
 
-  createChatWebSocket(): WebSocket | null {
+  async sendChatMessage(
+    content: string, 
+    chatHistory: string[] = [], 
+    selectedNewsArticle?: NewsArticle | null
+  ): Promise<ChatResponse> {
     try {
-      const wsUrl = this.jwtToken && this.jwtToken !== 'null'
-        ? `${this.wsUrl}/ws/chat?token=${this.jwtToken}`
-        : `${this.wsUrl}/ws/chat`;
-      
-      return new WebSocket(wsUrl);
+      const requestBody: ChatRequest = {
+        type: 'user_message',
+        content,
+        chat_history: chatHistory,
+        selected_news_article: selectedNewsArticle ? JSON.stringify(selectedNewsArticle) : null
+      };
+
+      const response = await fetch(`${this.baseUrl}/api/v1/chat`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(requestBody),
+      });
+
+      return await this.handleResponse(response);
     } catch (error) {
-      console.error('Error creating WebSocket:', error);
-      return null;
+      console.error('Chat API request failed:', error);
+      return this.handleNetworkError(error);
     }
   }
 

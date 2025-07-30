@@ -8,10 +8,9 @@ import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(true); // Always connected for REST API
   const [isLoading, setIsLoading] = useState(false);
   const [articleContext, setArticleContext] = useState<NewsArticle | null>(null);
-  const websocketRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = useCallback(() => {
@@ -42,83 +41,17 @@ export default function ChatPage() {
         console.error('Error parsing article context from localStorage:', error);
         localStorage.removeItem('chatArticleContext');
       }
-    }
-  }, []);
-
-  const connectWebSocket = useCallback(() => {
-    const ws = backendAPI.createChatWebSocket();
-    if (!ws) {
-      console.error('Failed to create WebSocket connection');
-      return;
-    }
-
-    websocketRef.current = ws;
-
-    ws.onopen = () => {
-      setIsConnected(true);
-      setMessages(prev => [...prev, {
+    } else {
+      // Add welcome message when no article context
+      setMessages([{
         type: 'bot_response',
-        content: 'Connected to TechPulse AI. Ask me anything about the latest tech news!'
+        content: 'Welcome to TechPulse AI! Ask me anything about the latest tech news!'
       }]);
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const message: ChatMessage = JSON.parse(event.data);
-        
-        // Ensure message has required fields
-        if (!message.type) {
-          console.error('Invalid message format: missing type');
-          return;
-        }
-        
-        // Ensure content is a string
-        if (message.content !== undefined && message.content !== null) {
-          message.content = String(message.content);
-        }
-        if (message.message !== undefined && message.message !== null) {
-          message.message = String(message.message);
-        }
-        
-        setMessages(prev => [...prev, message]);
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
-        // Add error message to chat
-        setMessages(prev => [...prev, {
-          type: 'error',
-          content: 'Error processing message from server'
-        }]);
-        setIsLoading(false);
-      }
-    };
-
-    ws.onclose = () => {
-      setIsConnected(false);
-      setIsLoading(false);
-    };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-      setIsConnected(false);
-      setIsLoading(false);
-      // Add error message to chat
-      setMessages(prev => [...prev, {
-        type: 'error',
-        content: 'Connection error. Please try reconnecting.'
-      }]);
-    };
+    }
   }, []);
 
-  const sendMessage = useCallback(() => {
-    if (!inputMessage.trim() || !websocketRef.current || !isConnected) return;
-
-    // Create message structure with only current message and article context as string
-    const messageData = {
-      type: 'user_message',
-      content: inputMessage,
-      selected_news_article: articleContext ? JSON.stringify(articleContext) : null
-    };
+  const sendMessage = useCallback(async () => {
+    if (!inputMessage.trim()) return;
 
     // Add user message to local state
     const userMessage: ChatMessage = {
@@ -130,9 +63,42 @@ export default function ChatPage() {
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
-    websocketRef.current.send(JSON.stringify(messageData));
-    setInputMessage('');
-  }, [inputMessage, isConnected, articleContext]);
+    try {
+      // Prepare chat history (last 10 messages for context)
+      const chatHistory = messages
+        .filter(msg => msg.type === 'user_message' || msg.type === 'bot_response')
+        .slice(-10)
+        .map(msg => msg.content || msg.message || '');
+
+      // Send message via POST request
+      const response = await backendAPI.sendChatMessage(
+        inputMessage,
+        chatHistory,
+        articleContext
+      );
+
+      // Add bot response to messages
+      const botMessage: ChatMessage = {
+        type: 'bot_response',
+        content: response.content
+      };
+
+      setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      
+      // Add error message to chat
+      const errorMessage: ChatMessage = {
+        type: 'error',
+        content: error instanceof Error ? error.message : 'Failed to send message. Please try again.'
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+      setInputMessage('');
+    }
+  }, [inputMessage, articleContext, messages]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -140,14 +106,6 @@ export default function ChatPage() {
       sendMessage();
     }
   }, [sendMessage]);
-
-  useEffect(() => {
-    return () => {
-      if (websocketRef.current) {
-        websocketRef.current.close();
-      }
-    };
-  }, []);
 
   const getMessageClassName = (type: string) => {
     const baseClasses = 'max-w-xs lg:max-w-md px-4 py-2 rounded-lg';
@@ -185,11 +143,6 @@ export default function ChatPage() {
               <span className="text-sm text-gray-600 dark:text-gray-400">
                 {isConnected ? 'Connected' : 'Disconnected'}
               </span>
-              {!isConnected && (
-                <Button onClick={connectWebSocket} size="sm" variant="secondary">
-                  Connect
-                </Button>
-              )}
             </div>
           </div>
 
@@ -289,9 +242,9 @@ export default function ChatPage() {
                 onKeyPress={handleKeyPress}
                 placeholder={articleContext ? "Ask about this article or any tech news..." : "Ask about the latest tech news..."}
                 className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                disabled={!isConnected}
+                disabled={isLoading}
               />
-              <Button onClick={sendMessage} disabled={!isConnected || !inputMessage.trim()}>
+              <Button onClick={sendMessage} disabled={isLoading || !inputMessage.trim()}>
                 Send
               </Button>
             </div>
