@@ -8,7 +8,6 @@ import MarkdownRenderer from '@/components/ui/MarkdownRenderer';
 export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
-  const [isConnected, setIsConnected] = useState(true); // Always connected for REST API
   const [isLoading, setIsLoading] = useState(false);
   const [articleContext, setArticleContext] = useState<NewsArticle | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -139,9 +138,9 @@ export default function ChatPage() {
               TechPulse AI Chat
             </h2>
             <div className="flex items-center gap-2 mt-2">
-              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <div className="w-2 h-2 rounded-full bg-green-500"></div>
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                {isConnected ? 'Connected' : 'Disconnected'}
+                Connected
               </span>
             </div>
           </div>
