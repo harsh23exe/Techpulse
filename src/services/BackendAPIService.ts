@@ -69,7 +69,12 @@ class BackendAPIService {
   constructor() {
     // Use the Next.js proxy route instead of direct backend URL
     this.baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '/api/backend';
-    this.wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000';
+    
+    // Set WebSocket URL based on environment
+    const isProduction = process.env.NODE_ENV === 'production';
+    this.wsUrl = process.env.NEXT_PUBLIC_WS_URL || 
+      (isProduction ? 'wss://real-time-news-agent.vercel.app' : 'ws://localhost:8000');
+    
     this.jwtToken = process.env.NEXT_PUBLIC_JWT_TOKEN || null;
     
     // Validate JWT token

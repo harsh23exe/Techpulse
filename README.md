@@ -12,6 +12,8 @@ A modern Next.js frontend for the TechPulse AI platform, integrated with the Rea
 
 ## Environment Configuration
 
+### Local Development
+
 Create a `.env.local` file in the project root:
 
 ```env
@@ -22,6 +24,15 @@ NEXT_PUBLIC_WS_URL=ws://localhost:8000
 # JWT Token for API authentication (set this when you have a token)
 NEXT_PUBLIC_JWT_TOKEN=your_jwt_token_here
 ```
+
+### Production Deployment
+
+For production deployment on Vercel, the following environment variables are automatically configured:
+
+- `NEXT_PUBLIC_BACKEND_URL`: `https://real-time-news-agent2.vercel.app`
+- `NEXT_PUBLIC_WS_URL`: `wss://real-time-news-agent2.vercel.app`
+
+The `vercel.json` file handles the production configuration automatically.
 
 ## Backend Integration
 
@@ -67,5 +78,24 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+### Production Deployment
+
+This project is configured for production deployment with the following setup:
+
+1. **Backend Integration**: The app automatically connects to the production backend at `https://real-time-news-agent2.vercel.app`
+2. **Environment Variables**: Configured in `vercel.json` for automatic deployment
+3. **API Rewrites**: Handled by Next.js configuration for seamless backend communication
+
+### Deployment Steps
+
+1. Push your code to GitHub
+2. Connect your repository to Vercel
+3. Deploy - the `vercel.json` configuration will handle the rest automatically
+
+The deployment will automatically:
+- Use the production backend URL
+- Configure WebSocket connections for real-time features
+- Set up API rewrites for backend communication
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
