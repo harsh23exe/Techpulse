@@ -39,6 +39,21 @@ function NewsCardContent({ data }: { data: NewsCardData }) {
   // Use the article ID if available, otherwise fall back to encoded URL for backward compatibility
   const articleId = data.id || encodeURIComponent(data.url);
   
+  // Helper function to safely format date
+  const formatDate = (dateString: string): string => {
+    try {
+      const date = new Date(dateString);
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return 'Date unavailable';
+      }
+      return format(date, 'MMM dd, yyyy');
+    } catch (error) {
+      console.warn('Invalid date format:', dateString, error);
+      return 'Date unavailable';
+    }
+  };
+  
   return (
     <Link href={`/article/${articleId}`} className="flex flex-col h-full">
       <div className="p-6 flex flex-col gap-4 h-full">
@@ -52,7 +67,7 @@ function NewsCardContent({ data }: { data: NewsCardData }) {
         
         <div className="flex items-center justify-between mt-auto">
           <time className="text-sm text-gray-500 dark:text-gray-400">
-            {format(new Date(data.published_at), 'MMM dd, yyyy')}
+            {formatDate(data.published_at)}
           </time>
           
           <span className="inline-flex items-center px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors">
@@ -103,11 +118,22 @@ function BlogCardContent({ data }: { data: BlogCardData }) {
         </Link>
         <div className="flex items-center mt-2">
           <time className="text-sm text-gray-500 dark:text-gray-400">
-            {new Date(data.date).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long", 
-              day: "numeric",
-            })}
+            {(() => {
+              try {
+                const date = new Date(data.date);
+                if (isNaN(date.getTime())) {
+                  return 'Date unavailable';
+                }
+                return date.toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long", 
+                  day: "numeric",
+                });
+              } catch (error) {
+                console.warn('Invalid blog date format:', data.date, error);
+                return 'Date unavailable';
+              }
+            })()}
           </time>
         </div>
       </div>

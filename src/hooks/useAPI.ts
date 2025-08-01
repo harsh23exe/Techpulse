@@ -52,7 +52,7 @@ export function useNewsSearch() {
     error: null
   });
 
-  const searchNews = useCallback(async (query: string, limit = 10) => {
+  const searchNews = useCallback(async (query: string, limit = 15) => {
     if (!query.trim()) return;
     
     try {

@@ -13,7 +13,7 @@ export default function SearchPage() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    await searchNews(query, 10);
+    await searchNews(query, 15);
   };
 
   return (

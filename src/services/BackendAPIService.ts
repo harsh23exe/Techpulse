@@ -119,7 +119,7 @@ class BackendAPIService {
     throw error;
   }
 
-  async searchNews(query: string, limit: number = 10): Promise<NewsSearchResponse> {
+  async searchNews(query: string, limit: number = 15): Promise<NewsSearchResponse> {
     try {
       const response = await fetch(`${this.baseUrl}/api/v1/news/search`, {
         method: 'POST',
