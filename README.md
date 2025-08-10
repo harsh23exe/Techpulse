@@ -8,6 +8,14 @@ Techpulse is designed to autonomously monitor news APIs, aggregate and index art
 - **AI Chat Interface**: Interactive chat with AI assistant for news queries
 - **Blog System**: Display curated tech articles and insights
 
+## Screenshots
+
+### Homepage
+![Homepage](public/homepage.png)
+
+### AI Chat Interface
+![Chat Interface](public/chat.png)
+
 ## Environment Configuration
 
 ### Local Development
